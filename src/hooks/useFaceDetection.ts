@@ -57,6 +57,7 @@ export function useFaceDetection({ enabled, onDrowsiness }: UseFaceDetectionOpti
   useEffect(() => {
     if (!enabled) return;
     let mounted = true;
+    setError(null);
 
     // API 헬스 체크
     checkApiHealth().then((ok) => {

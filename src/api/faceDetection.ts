@@ -29,6 +29,7 @@ const callbacks = new Set<DetectionCallback>();
 let frameCount = 0;
 const INFER_EVERY_N = 3;
 type DetectionCanvas = HTMLCanvasElement | OffscreenCanvas;
+let landmarkerPromise: Promise<void> | null = null;
 
 // ─── API Health Check ────────────────────────────────────────────────────────
 
@@ -45,6 +46,17 @@ export async function checkApiHealth(): Promise<boolean> {
 
 async function initLandmarker() {
   if (landmarker) return;
+  if (landmarkerPromise) return landmarkerPromise;
+
+  landmarkerPromise = loadLandmarker().catch((error) => {
+    landmarkerPromise = null;
+    throw error;
+  });
+
+  return landmarkerPromise;
+}
+
+async function loadLandmarker() {
   const vision = await FilesetResolver.forVisionTasks(
     'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
   );
@@ -94,7 +106,9 @@ export async function initCamera(deviceId = 'default'): Promise<HTMLVideoElement
     });
 
     await videoElement.play();
-    await initLandmarker();
+    initLandmarker().catch((error) => {
+      console.warn('[WakeLens] 얼굴 인식 모델을 불러오지 못했습니다.', error);
+    });
     return videoElement;
   } catch (error) {
     releaseCamera();
@@ -204,7 +218,11 @@ let lastResult: FaceDetectionResult = {
 };
 
 function runLoop() {
-  if (!videoElement || !landmarker || callbacks.size === 0) return;
+  if (!videoElement || callbacks.size === 0) return;
+  if (!landmarker) {
+    animFrameId = requestAnimationFrame(runLoop);
+    return;
+  }
 
   frameCount++;
 
