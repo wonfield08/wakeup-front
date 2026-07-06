@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { initCamera, startDetection, stopDetection, releaseCamera } from '@/api/faceDetection';
+import { initCamera, startDetection, stopDetection, releaseCamera, checkApiHealth } from '@/api/faceDetection';
 import type { FaceDetectionResult } from '@/api/faceDetection';
 import { useStore } from '@/store/useStore';
 
@@ -9,9 +9,11 @@ interface UseFaceDetectionOptions {
 }
 
 export function useFaceDetection({ enabled, onDrowsiness }: UseFaceDetectionOptions) {
-  const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const closedStartRef = useRef<number | null>(null);
+  const openStreakRef = useRef(0);
+  const OPEN_FORGIVENESS = 6;
+
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<FaceDetectionResult | null>(null);
@@ -19,6 +21,7 @@ export function useFaceDetection({ enabled, onDrowsiness }: UseFaceDetectionOpti
   const settings = useStore((s) => s.settings);
   const recordDrowsiness = useStore((s) => s.recordDrowsiness);
   const triggerWakeup = useStore((s) => s.triggerWakeup);
+  const setApiOnline = useStore((s) => s.setApiOnline);
 
   const threshold = settings.detection.eyeClosureThreshold * 1000;
 
@@ -26,7 +29,8 @@ export function useFaceDetection({ enabled, onDrowsiness }: UseFaceDetectionOpti
     (result: FaceDetectionResult) => {
       setLastResult(result);
 
-      if (!result.eyesOpen) {
+      if (result.isClosed) {
+        openStreakRef.current = 0;
         if (closedStartRef.current === null) {
           closedStartRef.current = Date.now();
         } else if (Date.now() - closedStartRef.current >= threshold) {
@@ -41,7 +45,10 @@ export function useFaceDetection({ enabled, onDrowsiness }: UseFaceDetectionOpti
           closedStartRef.current = null;
         }
       } else {
-        closedStartRef.current = null;
+        openStreakRef.current += 1;
+        if (openStreakRef.current >= OPEN_FORGIVENESS) {
+          closedStartRef.current = null;
+        }
       }
     },
     [threshold, recordDrowsiness, triggerWakeup, onDrowsiness]
@@ -49,20 +56,29 @@ export function useFaceDetection({ enabled, onDrowsiness }: UseFaceDetectionOpti
 
   useEffect(() => {
     if (!enabled) return;
-
     let mounted = true;
+
+    // API 헬스 체크
+    checkApiHealth().then((ok) => {
+      if (mounted) setApiOnline(ok);
+      if (!ok) console.warn('[WakeLens] eye-status-api 미연결. 감지 기능이 제한됩니다.');
+    });
 
     initCamera(settings.detection.cameraId)
       .then((video) => {
         if (!mounted) return;
-        videoRef.current = video;
         if (containerRef.current) {
+          containerRef.current.innerHTML = '';
+          video.style.width = '100%';
+          video.style.height = '100%';
+          video.style.objectFit = 'cover';
+          video.style.transform = 'scaleX(-1)';
           containerRef.current.appendChild(video);
         }
         setIsReady(true);
         startDetection(handleResult);
       })
-      .catch((err) => {
+      .catch((err: Error) => {
         if (mounted) setError(err.message);
       });
 
@@ -74,5 +90,10 @@ export function useFaceDetection({ enabled, onDrowsiness }: UseFaceDetectionOpti
     };
   }, [enabled, settings.detection.cameraId]);
 
-  return { containerRef, isReady, error, lastResult };
+  const closedDuration =
+    lastResult?.isClosed && closedStartRef.current !== null
+      ? (Date.now() - closedStartRef.current) / 1000
+      : 0;
+
+  return { containerRef, isReady, error, lastResult, closedDuration };
 }

@@ -7,6 +7,8 @@ interface AppState {
   settings: Settings;
   history: DrowsinessEvent[];
   hourlyStats: HourlyStats[];
+  wakeupVideoUrl: string;
+  apiOnline: boolean;
 
   startSession: () => void;
   stopSession: () => void;
@@ -15,6 +17,8 @@ interface AppState {
   recordDrowsiness: (event: Omit<DrowsinessEvent, 'id'>) => void;
   updateSettings: (partial: Partial<Settings>) => void;
   clearHistory: () => void;
+  setWakeupVideoUrl: (url: string) => void;
+  setApiOnline: (online: boolean) => void;
 }
 
 const defaultSettings: Settings = {
@@ -57,6 +61,8 @@ export const useStore = create<AppState>()(
       settings: defaultSettings,
       history: [],
       hourlyStats: generateMockHourlyStats(),
+      wakeupVideoUrl: '',
+      apiOnline: false,
 
       startSession: () =>
         set(() => ({
@@ -68,9 +74,7 @@ export const useStore = create<AppState>()(
         })),
 
       stopSession: () =>
-        set(() => ({
-          session: { ...defaultSession },
-        })),
+        set(() => ({ session: { ...defaultSession } })),
 
       triggerWakeup: () =>
         set((state) => ({
@@ -84,20 +88,18 @@ export const useStore = create<AppState>()(
 
       recordDrowsiness: (event) =>
         set((state) => {
-          const newEvent: DrowsinessEvent = {
-            ...event,
-            id: crypto.randomUUID(),
-          };
+          const newEvent: DrowsinessEvent = { ...event, id: crypto.randomUUID() };
+          const events = state.session.currentStats.drowsinessEvents;
+          const totalDuration = events.reduce((s, e) => s + e.duration, 0) + newEvent.duration;
+          const avgBlinkDuration = totalDuration / (events.length + 1);
           return {
             session: {
               ...state.session,
               currentStats: {
                 ...state.session.currentStats,
                 blinkCount: state.session.currentStats.blinkCount + 1,
-                drowsinessEvents: [
-                  ...state.session.currentStats.drowsinessEvents,
-                  newEvent,
-                ],
+                avgBlinkDuration,
+                drowsinessEvents: [...events, newEvent],
               },
             },
             history: [newEvent, ...state.history],
@@ -105,17 +107,20 @@ export const useStore = create<AppState>()(
         }),
 
       updateSettings: (partial) =>
-        set((state) => ({
-          settings: { ...state.settings, ...partial },
-        })),
+        set((state) => ({ settings: { ...state.settings, ...partial } })),
 
       clearHistory: () => set({ history: [] }),
+
+      setWakeupVideoUrl: (url) => set({ wakeupVideoUrl: url }),
+
+      setApiOnline: (online) => set({ apiOnline: online }),
     }),
     {
       name: 'wakelens-storage',
       partialize: (state) => ({
         settings: state.settings,
         history: state.history,
+        wakeupVideoUrl: state.wakeupVideoUrl,
       }),
     }
   )
