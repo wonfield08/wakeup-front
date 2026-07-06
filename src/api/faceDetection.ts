@@ -28,6 +28,7 @@ let animFrameId: number | null = null;
 const callbacks = new Set<DetectionCallback>();
 let frameCount = 0;
 const INFER_EVERY_N = 3;
+type DetectionCanvas = HTMLCanvasElement | OffscreenCanvas;
 
 // ─── API Health Check ────────────────────────────────────────────────────────
 
@@ -60,29 +61,62 @@ async function initLandmarker() {
 // ─── 카메라 초기화 ────────────────────────────────────────────────────────────
 
 export async function initCamera(deviceId = 'default'): Promise<HTMLVideoElement> {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error('이 브라우저에서는 카메라 접근을 지원하지 않습니다.');
+  }
+
+  if (!window.isSecureContext && window.location.hostname !== 'localhost') {
+    throw new Error('카메라는 HTTPS 환경에서만 사용할 수 있습니다.');
+  }
+
+  releaseCamera();
+
   const constraints: MediaStreamConstraints = {
     video:
       deviceId === 'default'
-        ? { width: 640, height: 480, facingMode: 'user' }
-        : { deviceId: { exact: deviceId }, width: 640, height: 480 },
+        ? { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' }
+        : { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+    audio: false,
   };
-  const stream = await navigator.mediaDevices.getUserMedia(constraints);
-  videoElement = document.createElement('video');
-  videoElement.srcObject = stream;
-  videoElement.autoplay = true;
-  videoElement.playsInline = true;
-  videoElement.muted = true;
-  await new Promise<void>((resolve) => {
-    videoElement!.onloadedmetadata = () => resolve();
-  });
-  await initLandmarker();
-  return videoElement;
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    videoElement = document.createElement('video');
+    videoElement.srcObject = stream;
+    videoElement.autoplay = true;
+    videoElement.playsInline = true;
+    videoElement.muted = true;
+
+    await new Promise<void>((resolve, reject) => {
+      if (!videoElement) return reject(new Error('카메라 영상을 초기화하지 못했습니다.'));
+      videoElement.onloadedmetadata = () => resolve();
+      videoElement.onerror = () => reject(new Error('카메라 영상을 불러오지 못했습니다.'));
+    });
+
+    await videoElement.play();
+    await initLandmarker();
+    return videoElement;
+  } catch (error) {
+    releaseCamera();
+    if (error instanceof DOMException) {
+      if (error.name === 'NotAllowedError') {
+        throw new Error('카메라 권한이 거부되었습니다. 브라우저 권한 설정을 확인해 주세요.');
+      }
+      if (error.name === 'NotFoundError') {
+        throw new Error('사용 가능한 카메라를 찾지 못했습니다.');
+      }
+      if (error.name === 'NotReadableError') {
+        throw new Error('다른 앱이 카메라를 사용 중입니다.');
+      }
+    }
+    throw error instanceof Error ? error : new Error('카메라를 시작하지 못했습니다.');
+  }
 }
 
 // ─── 눈 영역 크롭 ─────────────────────────────────────────────────────────────
 
 async function cropEyeBlob(
-  canvas: OffscreenCanvas,
+  canvas: DetectionCanvas,
   landmarks: { x: number; y: number }[],
   indices: number[]
 ): Promise<Blob | null> {
@@ -100,10 +134,34 @@ async function cropEyeBlob(
 
   const cropW = x1 - x0;
   const cropH = y1 - y0;
-  const cropCanvas = new OffscreenCanvas(cropW, cropH);
+  const cropCanvas = createCanvas(cropW, cropH);
   const ctx = cropCanvas.getContext('2d')!;
   ctx.drawImage(canvas, x0, y0, cropW, cropH, 0, 0, cropW, cropH);
-  return cropCanvas.convertToBlob({ type: 'image/jpeg', quality: 0.85 });
+  return canvasToBlob(cropCanvas, 'image/jpeg', 0.85);
+}
+
+function createCanvas(width: number, height: number): DetectionCanvas {
+  if ('OffscreenCanvas' in window) {
+    return new OffscreenCanvas(width, height);
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  return canvas;
+}
+
+function canvasToBlob(canvas: DetectionCanvas, type: string, quality: number): Promise<Blob> {
+  if (typeof OffscreenCanvas !== 'undefined' && canvas instanceof OffscreenCanvas) {
+    return canvas.convertToBlob({ type, quality });
+  }
+
+  return new Promise((resolve, reject) => {
+    (canvas as HTMLCanvasElement).toBlob((blob: Blob | null) => {
+      if (blob) resolve(blob);
+      else reject(new Error('눈 영역 이미지를 생성하지 못했습니다.'));
+    }, type, quality);
+  });
 }
 
 // ─── eye-status-api 호출 ──────────────────────────────────────────────────────
@@ -151,7 +209,7 @@ function runLoop() {
   frameCount++;
 
   if (frameCount % INFER_EVERY_N === 0 && !pendingInference) {
-    const canvas = new OffscreenCanvas(videoElement.videoWidth || 640, videoElement.videoHeight || 480);
+    const canvas = createCanvas(videoElement.videoWidth || 640, videoElement.videoHeight || 480);
     const ctx = canvas.getContext('2d');
     if (ctx && videoElement.readyState >= 2) {
       ctx.drawImage(videoElement, 0, 0);

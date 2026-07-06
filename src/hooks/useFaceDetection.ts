@@ -88,7 +88,7 @@ export function useFaceDetection({ enabled, onDrowsiness }: UseFaceDetectionOpti
       releaseCamera();
       setIsReady(false);
     };
-  }, [enabled, settings.detection.cameraId]);
+  }, [enabled, settings.detection.cameraId, handleResult, setApiOnline]);
 
   const closedDuration =
     lastResult?.isClosed && closedStartRef.current !== null

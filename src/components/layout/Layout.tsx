@@ -7,9 +7,9 @@ export function Layout() {
   const isWakeupVisible = useStore((s) => s.session.isWakeupScreenVisible);
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
+    <div className="flex min-h-screen bg-[#f2f3f7] overflow-hidden">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 min-w-0 overflow-y-auto">
         <Outlet />
       </main>
       {isWakeupVisible && <WakeupOverlay />}

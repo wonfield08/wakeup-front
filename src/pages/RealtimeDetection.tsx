@@ -15,12 +15,12 @@ export function RealtimeDetection() {
   });
 
   return (
-    <div className="p-6">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between h-[59px] px-8 border-b border-gray-200 bg-white/70">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">실시간 집중 감지</h1>
-          <p className="text-xs text-gray-400 mt-0.5">
+          <h1 className="text-2xl font-bold text-gray-900 leading-tight">실시간 집중 감지</h1>
+          <p className="text-xs text-gray-400">
             이안이 졸음을 감지하면 바로 깨워드려요
           </p>
         </div>
@@ -56,14 +56,14 @@ export function RealtimeDetection() {
 
       {/* API / camera error */}
       {error && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+        <div className="mx-8 mt-5 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
           카메라 오류: {error}
         </div>
       )}
 
       {/* Main layout */}
-      <div className="grid grid-cols-[1fr_256px] gap-4">
-        <div className="flex flex-col gap-4">
+      <div className="grid grid-cols-[minmax(560px,1fr)_400px] gap-5 px-8 py-7">
+        <div className="flex flex-col gap-4 min-w-0">
           <CameraView
             containerRef={containerRef}
             isReady={isReady}
