@@ -9,6 +9,8 @@ export function SessionPanel() {
   const session = useStore((s) => s.session);
   const wakeupVideoUrl = useStore((s) => s.wakeupVideoUrl);
   const setWakeupVideoUrl = useStore((s) => s.setWakeupVideoUrl);
+  const wakeupCharacterName = useStore((s) => s.wakeupCharacterName);
+  const setWakeupCharacterName = useStore((s) => s.setWakeupCharacterName);
 
   const { elapsed } = useTimer(session.isActive);
   const minutes = String(Math.floor(elapsed / 60)).padStart(2, '0');
@@ -20,6 +22,10 @@ export function SessionPanel() {
   const [videoInfo, setVideoInfo] = useState<YouTubeVideoInfo | null>(null);
   const [urlError, setUrlError] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // 이름 모달 상태
+  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
+  const [tempName, setTempName] = useState('');
 
   // 저장된 URL이 있으면 초기 로드
   useEffect(() => {
@@ -42,10 +48,23 @@ export function SessionPanel() {
     }
     setUrlError(false);
     setLoading(true);
-    const info = await fetchVideoInfo(id);
-    setVideoInfo(info);
+    try {
+      const info = await fetchVideoInfo(id);
+      setVideoInfo(info);
+      setTempName(wakeupCharacterName || '이안');
+      setIsNameModalOpen(true);
+    } catch (e) {
+      setUrlError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSaveName = () => {
+    const trimmedName = tempName.trim() || '이안';
+    setWakeupCharacterName(trimmedName);
     setWakeupVideoUrl(urlInput.trim());
-    setLoading(false);
+    setIsNameModalOpen(false);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -142,7 +161,7 @@ export function SessionPanel() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-gray-800 truncate">
-                이안 · 응원 한마디
+                {wakeupCharacterName} · 응원 한마디
               </p>
               <p className="text-xs text-gray-400 truncate mt-1">{videoInfo.title}</p>
               <div className="flex items-center gap-1.5 mt-1">
@@ -162,6 +181,50 @@ export function SessionPanel() {
           졸음이 감지되면 이 영상이 전체 화면으로 바로 재생됩니다.
         </p>
       </div>
+
+      {/* Name Input Modal */}
+      {isNameModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-md">
+          <div className="bg-white rounded-[24px] p-6 w-full max-w-sm border border-gray-100 shadow-[0_20px_50px_rgba(0,0,0,0.15)] mx-4">
+            <div className="flex flex-col items-center text-center mb-5">
+              <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mb-3">
+                <Play className="w-5 h-5 text-blue-600 fill-blue-600 ml-0.5" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">깨워줄 사람의 이름을 입력하세요</h3>
+              <p className="text-xs text-gray-400 mt-1">
+                졸음 감지 시 화면과 알림에 표시될 이름을 적어주세요.
+              </p>
+            </div>
+            
+            <input
+              type="text"
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-5 bg-gray-50/50"
+              placeholder="예: 이안, 카리나, 친구이름"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSaveName();
+              }}
+            />
+            
+            <div className="flex gap-2">
+              <button
+                onClick={() => setIsNameModalOpen(false)}
+                className="flex-1 py-3 text-sm font-semibold text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors border border-gray-200/60"
+              >
+                취소
+              </button>
+              <button
+                onClick={handleSaveName}
+                className="flex-1 py-3 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm shadow-blue-500/20"
+              >
+                저장
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

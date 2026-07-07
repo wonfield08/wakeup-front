@@ -8,6 +8,7 @@ interface AppState {
   history: DrowsinessEvent[];
   hourlyStats: HourlyStats[];
   wakeupVideoUrl: string;
+  wakeupCharacterName: string;
   apiOnline: boolean;
 
   startSession: () => void;
@@ -18,6 +19,7 @@ interface AppState {
   updateSettings: (partial: Partial<Settings>) => void;
   clearHistory: () => void;
   setWakeupVideoUrl: (url: string) => void;
+  setWakeupCharacterName: (name: string) => void;
   setApiOnline: (online: boolean) => void;
 }
 
@@ -62,6 +64,7 @@ export const useStore = create<AppState>()(
       history: [],
       hourlyStats: generateMockHourlyStats(),
       wakeupVideoUrl: '',
+      wakeupCharacterName: '이안',
       apiOnline: false,
 
       startSession: () =>
@@ -113,6 +116,8 @@ export const useStore = create<AppState>()(
 
       setWakeupVideoUrl: (url) => set({ wakeupVideoUrl: url }),
 
+      setWakeupCharacterName: (name) => set({ wakeupCharacterName: name }),
+
       setApiOnline: (online) => set({ apiOnline: online }),
     }),
     {
@@ -121,6 +126,7 @@ export const useStore = create<AppState>()(
         settings: state.settings,
         history: state.history,
         wakeupVideoUrl: state.wakeupVideoUrl,
+        wakeupCharacterName: state.wakeupCharacterName,
       }),
     }
   )

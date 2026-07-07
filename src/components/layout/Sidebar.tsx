@@ -11,6 +11,7 @@ const navItems = [
 export function Sidebar() {
   const isActive = useStore((s) => s.session.isActive);
   const apiOnline = useStore((s) => s.apiOnline);
+  const wakeupCharacterName = useStore((s) => s.wakeupCharacterName);
 
   return (
     <aside className="w-[258px] min-h-screen bg-white border-r border-gray-200 flex flex-col shrink-0">
@@ -70,10 +71,10 @@ export function Sidebar() {
         </p>
         <div className="flex items-center justify-center gap-2.5 px-4 py-4 rounded-2xl bg-gray-50 border border-gray-200">
           <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-            이안
+            {wakeupCharacterName.slice(0, 2)}
           </div>
           <div>
-            <p className="text-sm font-semibold text-gray-800">이안</p>
+            <p className="text-sm font-semibold text-gray-800">{wakeupCharacterName}</p>
             <div className="flex items-center gap-1">
               <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
               <span className="text-xs text-gray-500">{isActive ? '감지 중' : '대기 중'}</span>

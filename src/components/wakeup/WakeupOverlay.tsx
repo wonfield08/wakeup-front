@@ -1,11 +1,13 @@
-import { Moon, Eye } from 'lucide-react';
+import { Eye, Check } from 'lucide-react';
 import { useStore } from '@/store/useStore';
 import { useEffect, useRef, useState } from 'react';
 import { parseYouTubeUrl, getEmbedUrl } from '@/api/youtube';
+import { getPostposition } from '@/utils/korean';
 
 export function WakeupOverlay() {
   const dismissWakeup = useStore((s) => s.dismissWakeup);
   const wakeupVideoUrl = useStore((s) => s.wakeupVideoUrl);
+  const wakeupCharacterName = useStore((s) => s.wakeupCharacterName);
   const volume = useStore((s) => s.settings.wakeup.volume);
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [videoId, setVideoId] = useState<string | null>(null);
@@ -53,9 +55,11 @@ export function WakeupOverlay() {
       <div className="relative z-10 text-center mb-auto">
         <div className="flex items-center justify-center gap-2 mb-2">
           <Eye className="w-5 h-5 text-white/70" />
-          <p className="text-white/70 text-sm">이안 · 지금 바로 일어나</p>
+          <p className="text-white/70 text-sm">{wakeupCharacterName} · 지금 바로 일어나</p>
         </div>
-        <h1 className="text-4xl font-bold text-white mb-3">이안이 깨우고 있어요</h1>
+        <h1 className="text-4xl font-bold text-white mb-3">
+          {wakeupCharacterName}{getPostposition(wakeupCharacterName, '이/가')} 깨우고 있어요
+        </h1>
         <p className="text-white/60 text-sm max-w-xs leading-relaxed">
           눈을 뜨고 화면을 확인하면<br />자동으로 감지 되고 되돌아갑니다
         </p>
@@ -67,8 +71,8 @@ export function WakeupOverlay() {
           onClick={dismissWakeup}
           className="flex items-center gap-2 px-7 py-3 bg-white/15 hover:bg-white/25 text-white text-sm font-medium rounded-full border border-white/25 backdrop-blur-sm transition-colors"
         >
-          <Moon className="w-4 h-4" />
-          잠시 · 깊은 취침
+          <Check className="w-4 h-4" />
+          일어났어요
         </button>
       </div>
     </div>

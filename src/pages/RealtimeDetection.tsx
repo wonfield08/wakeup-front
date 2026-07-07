@@ -4,11 +4,13 @@ import { useFaceDetection } from '@/hooks/useFaceDetection';
 import { CameraView } from '@/components/detection/CameraView';
 import { SessionPanel } from '@/components/detection/SessionPanel';
 import { DetectionCards } from '@/components/detection/DetectionCards';
+import { getPostposition } from '@/utils/korean';
 
 export function RealtimeDetection() {
   const session = useStore((s) => s.session);
   const startSession = useStore((s) => s.startSession);
   const stopSession = useStore((s) => s.stopSession);
+  const wakeupCharacterName = useStore((s) => s.wakeupCharacterName);
 
   const { containerRef, isReady, error, lastResult, closedDuration } = useFaceDetection({
     enabled: session.isActive,
@@ -21,7 +23,7 @@ export function RealtimeDetection() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900 leading-tight">실시간 집중 감지</h1>
           <p className="text-xs text-gray-400">
-            이안이 졸음을 감지하면 바로 깨워드려요
+            {wakeupCharacterName}{getPostposition(wakeupCharacterName, '이/가')} 졸음을 감지하면 바로 깨워드려요
           </p>
         </div>
         <div className="flex items-center gap-3">

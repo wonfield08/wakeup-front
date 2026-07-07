@@ -122,8 +122,8 @@ export function Settings() {
           </Row>
         </Section>
 
-        {/* Notifications */}
-        <Section title="알림">
+        {/* Notifications & Data */}
+        <Section title="알림 및 데이터">
           <Row label="졸음 감지 알림">
             <Toggle
               checked={settings.notifications.drowsinessAlert}
@@ -136,29 +136,8 @@ export function Settings() {
               onChange={(v) => update('notifications', 'dailyReport', v)}
             />
           </Row>
-        </Section>
-
-        {/* AI settings */}
-        <Section title="AI 제한">
-          <Row label="데이터 수집" sub="모델 개선에 활용됩니다">
-            <Toggle
-              checked={settings.ai.dataCollection}
-              onChange={(v) => update('ai', 'dataCollection', v)}
-            />
-          </Row>
-          <Row label="기록 보관 기간">
-            <select
-              value={settings.ai.historyRetentionDays}
-              onChange={(e) => update('ai', 'historyRetentionDays', Number(e.target.value))}
-              className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value={7}>최근 7일</option>
-              <option value={30}>최근 30일</option>
-              <option value={90}>최근 90일</option>
-              <option value={365}>최근 1년</option>
-            </select>
-          </Row>
-          <Row label="기록 전체 초기화">
+          <div className="h-px bg-gray-100 my-1" />
+          <Row label="기록 전체 초기화" sub="저장된 모든 졸음 기록을 삭제합니다">
             <button
               onClick={() => {
                 if (confirm('모든 기록을 삭제하시겠어요?')) clearHistory();

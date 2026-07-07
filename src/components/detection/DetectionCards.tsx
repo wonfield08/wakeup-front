@@ -1,8 +1,10 @@
 import { Camera, Clock, Bell } from 'lucide-react';
 import { useStore } from '@/store/useStore';
+import { getPostposition } from '@/utils/korean';
 
 export function DetectionCards() {
   const threshold = useStore((s) => s.settings.detection.eyeClosureThreshold);
+  const wakeupCharacterName = useStore((s) => s.wakeupCharacterName);
 
   const cards = [
     {
@@ -19,7 +21,7 @@ export function DetectionCards() {
     },
     {
       icon: Bell,
-      title: '이안이 깨움',
+      title: `${wakeupCharacterName}${getPostposition(wakeupCharacterName, '이/가')} 깨움`,
       description: '영상·음성 재생',
       color: 'text-purple-500 bg-purple-50',
     },
