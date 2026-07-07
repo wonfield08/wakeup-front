@@ -12,7 +12,7 @@ export function RealtimeDetection() {
   const stopSession = useStore((s) => s.stopSession);
   const wakeupCharacterName = useStore((s) => s.wakeupCharacterName);
 
-  const { containerRef, isReady, error, lastResult, closedDuration } = useFaceDetection({
+  const { containerRef, isReady, error, lastResult, closedDuration, isTabHidden } = useFaceDetection({
     enabled: session.isActive,
   });
 
@@ -60,6 +60,14 @@ export function RealtimeDetection() {
       {error && (
         <div className="mx-8 mt-5 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
           카메라 오류: {error}
+        </div>
+      )}
+
+      {/* 탭 이탈 경고 */}
+      {session.isActive && isTabHidden && (
+        <div className="mx-8 mt-5 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-yellow-700 text-sm flex items-center gap-2">
+          <span>⚠️</span>
+          <span>다른 탭에 있는 동안은 졸음 감지 정확도가 낮아질 수 있어요. 이 탭으로 돌아와 주세요.</span>
         </div>
       )}
 

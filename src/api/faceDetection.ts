@@ -24,7 +24,7 @@ export type DetectionCallback = (result: FaceDetectionResult) => void;
 
 let landmarker: FaceLandmarker | null = null;
 let videoElement: HTMLVideoElement | null = null;
-let animFrameId: number | null = null;
+let intervalId: ReturnType<typeof setInterval> | null = null;
 const callbacks = new Set<DetectionCallback>();
 let frameCount = 0;
 const INFER_EVERY_N = 3;
@@ -217,12 +217,13 @@ let lastResult: FaceDetectionResult = {
   hasLandmarks: false,
 };
 
+// rAF 대신 setInterval을 사용해 백그라운드 탭에서도 루프가 유지되도록 함
+// (rAF는 탭이 비활성화되면 브라우저가 실행을 완전히 멈춤)
+const LOOP_INTERVAL_MS = 100; // 10fps 기준, INFER_EVERY_N=3이면 실질 추론은 ~3fps
+
 function runLoop() {
   if (!videoElement || callbacks.size === 0) return;
-  if (!landmarker) {
-    animFrameId = requestAnimationFrame(runLoop);
-    return;
-  }
+  if (!landmarker) return;
 
   frameCount++;
 
@@ -266,25 +267,23 @@ function runLoop() {
       }
     }
   }
-
-  animFrameId = requestAnimationFrame(runLoop);
 }
 
 // ─── 공개 API ─────────────────────────────────────────────────────────────────
 
 export function startDetection(cb: DetectionCallback) {
   callbacks.add(cb);
-  if (animFrameId === null) {
-    animFrameId = requestAnimationFrame(runLoop);
+  if (intervalId === null) {
+    intervalId = setInterval(runLoop, LOOP_INTERVAL_MS);
   }
 }
 
 export function stopDetection(cb?: DetectionCallback) {
   if (cb) callbacks.delete(cb);
   else callbacks.clear();
-  if (callbacks.size === 0 && animFrameId !== null) {
-    cancelAnimationFrame(animFrameId);
-    animFrameId = null;
+  if (callbacks.size === 0 && intervalId !== null) {
+    clearInterval(intervalId);
+    intervalId = null;
   }
 }
 
